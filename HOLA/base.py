@@ -12,7 +12,6 @@ any desktop or web-based app
 import base64
 import requests
 from datetime import datetime 
-import time 
 import json
 import base64
 
@@ -53,32 +52,37 @@ class Hologram():
 
     def retrieve(self):
         ''' Retrieve the data for the requested period'''
-        # Verify if the url is well defined and we get a OK status
-        self._response = requests.get(self._urlBuild())
-        if self._response.status_code != 200:
-            requests.exceptions.RequestException('Something failed during the requests, make sure all init parameters are well defined')
-        
-        # Download first batch of data
-        self.response_dict = json.loads(self._response.text)
-        self.data_records = []
-        for record in self.response_dict['data']:
-            self.data_records.append(json.loads(record['data']))
-            self.data_records[-1]['data'] = base64.b64decode(self.data_records[-1]['data']).decode('utf8').split('~') # Get data as a list
-            self.data_records[-1]['data'].append(record['record_id']) # Append record id
-        
-        # In case not all the data was retrieve, it'll continue downloading data
-        while self.response_dict['continues']:
-            self.startTime = datetime.strptime(self.data_records[0]['received'][:10], '%Y-%m-%d')
+        # Start downloading data and in case not all the data was retrieve, it'll continue downloading data
+        self._data_records = []
+        unique_ids = [] # To store ids
+        continues = True
+        while continues:
             self._response = requests.get(self._urlBuild())
+            if self._response.status_code != 200: # Verify if we get a OK status
+                raise requests.exceptions.RequestException('Something failed during the requests, make sure all init parameters are well defined')
             self.response_dict = json.loads(self._response.text)
             for record in self.response_dict['data']:
-                self.data_records.append(json.loads(record['data']))
-                self.data_records[-1]['data'] = base64.b64decode(self.data_records[-1]['data']).decode('utf8').split('~')
-                self.data_records[-1]['data'].append(record['record_id'])
+                id = record['record_id']
+                if id in unique_ids: # If record is already appended, then continue
+                    continue
+                else:
+                    self._data_records.append(json.loads(record['data']))
+                    self._data_records[-1]['data'] = base64.b64decode(self._data_records[-1]['data']).decode('utf8').split('~')
+                    self._data_records[-1]['data'].append(id)
+                    unique_ids.append(id)
+            continues = self.response_dict['continues']
+            if continues: # If there is still more data to download
+                former_date = self.endTime
+                self.endTime = datetime.strptime(self._data_records[-1]['received'][:10], '%Y-%m-%d')
+                print(f'Downloaded from {self._data_records[-1]["received"][:10]} to {former_date}')
 
-        self.final_records = []
-        for record in self.data_records:
-            self.final_records.append(record['data'])
+        # Create a real record object i.e. list of dicts, assigning a number to any of the fields but the id
+        self.records = []
+        for record in self._data_records:
+            tmp_data_list = record['data']
+            self.records.append(dict(zip(range(len(tmp_data_list) - 1), tmp_data_list[:-1])))
+            self.records[-1]['_id'] = tmp_data_list[-1]
 
-        print(f'Succesfully requested {len(self.final_records)} records')
-        
+        print(f'Succesfully requested {len(self.records)} records')
+        return None
+
