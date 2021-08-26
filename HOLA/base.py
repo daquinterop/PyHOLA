@@ -27,7 +27,7 @@ class Hologram():
 
     def __init__(self, deviceID, apiKey, orgID, startTime, endTime, recordLimit=1000, isLive=False):
         '''  
-        Attributes:
+        Args:
             recordLimit: int    | Maximum number of records to be obtained
             deviceID: str       | Device ID for 'VRAlfGate'
             isLive: bool        | Only get usage data from live devices (true) or not (false)
@@ -123,7 +123,7 @@ class Hologram():
             if len(colnames) != self._n_fields:
                 raise IndexError(f'colnames does not match with number {self._n_fields} of fields')
 
-        # Raise exception if the number of fields does not match the columns of the existing file (append mode)
+        # TODO: Raise exception if the number of fields does not match the columns of the existing file (append mode)
 
         # Perform sorting
         if dateSort != None:
@@ -138,7 +138,7 @@ class Hologram():
             self.records[n][dateSort] =  (record[dateSort] + timedelta(hours=timeDelta)).strftime(dateFormat)
         # Lines to write on the file
         lines = []
-        if not append:
+        if not append: # If not append, create columns headers
             if colnames == None:
                 colnames = list(map(str, self.records[0].keys()))
                 colnames = f'{sep}'.join(colnames)
@@ -148,9 +148,20 @@ class Hologram():
                 colnames = list(map(str, colnames))
                 colnames.append('_id\n')
                 lines.append(f'{sep}'.join(colnames))
+
+        # All downloaded lines
         lines += list(map(lambda x: f'{sep}'.join(list(x.values())) + '\n', self.records))
         
+        # If append, then open file to get existing records, so as not overwrite
+        if append:
+            f = open(filepath, 'r')
+            file_lines = f.readlines()
+            f.close()
+            # New lines in the file
+            lines = [line for line in lines if line not in file_lines]
         # Open and write file
         f = open(filepath, 'a')
         f.writelines(lines)
         f.close()
+        print(f'{len(lines)} records written to {filepath}')
+        return None
