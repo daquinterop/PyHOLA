@@ -91,10 +91,10 @@ class Hologram():
         self._n_fields = Counter(map(len, self.records)).most_common(1)[0][0] - 1
         self.records = [i for i in self.records[:] if len(i) == (self._n_fields + 1)]
 
-        print(f'Succesfully requested {len(self.records)} records')
+        print(f'Successfully requested {len(self.records)} records')
         return None
 
-    def save_records(self, filepath, sep=',', colnames=None, append=False, dateSort=None, timeDelta=0, dateFormat='%Y-%m-%d %H:%M:%S'):
+    def save_records(self, filepath, sep=',', colnames=None, append=False, timeDelta=0, dateFormat='%Y-%m-%d %H:%M:%S'):
         '''
         Save records to a text file.
         Args:
@@ -102,7 +102,6 @@ class Hologram():
             - sep: str       | Column separator string
             - colnames: list | Names of the columns or None
             - append: bool   | True if the data will be appended to an existing file
-            - dateSort: int  | None or index of the date column to perform sorting
             - timeDelta: int | Hours to add to the raw date in case it's not local time
             - dateFormat str | format to print dates
         '''
@@ -125,10 +124,19 @@ class Hologram():
 
         # TODO: Raise exception if the number of fields does not match the columns of the existing file (append mode)
 
-        # Perform sorting
+        # Try to figure out which of the columns is the date column
+        for dateSort, item in self.records[0].items():
+            try:
+                try:
+                    float(item)
+                    continue
+                except ValueError:
+                    dateutil.parser.parse(item.replace('_', ' '))
+                    break
+            except ValueError:
+                dateSort = None
+        # Perform sorting if it was able to find a date column
         if dateSort != None:
-            if not isinstance(dateSort, int):
-                raise TypeError('dateSort argument must be an integer')
             for n, record in enumerate(self.records):
                 self.records[n][dateSort] =  dateutil.parser.parse(record[dateSort].replace('_', ' '))
             self.records = sorted(self.records, key=lambda x: x[dateSort])
@@ -136,6 +144,7 @@ class Hologram():
         # Add the timeDelta and convert datetime to string
         for n, record in enumerate(self.records):
             self.records[n][dateSort] =  (record[dateSort] + timedelta(hours=timeDelta)).strftime(dateFormat)
+
         # Lines to write on the file
         lines = []
         if not append: # If not append, create columns headers
