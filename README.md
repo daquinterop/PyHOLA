@@ -7,3 +7,9 @@ The base module contains the `Hologram` Class. This class is initialized with th
 ## TODOS
 - Renaming columns in the file to save
 - GUI implementation
+
+## INSTALL
+
+You can Install the Library using pip:
+
+`pip install PyHOLA`
