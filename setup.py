@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="PyHOLA",
-    version= '21.08',
+    version= '21.09',
     packages=find_packages(),
     description='A Python implementation to download sensor data using HOLOGRAM API',
     url='https://github.com/daquinterop/PyHOLA',
