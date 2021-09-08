@@ -137,11 +137,11 @@ class Hologram():
                 dateSort = None
         # Perform sorting if it was able to find a date column
         if dateSort != None:
-            print('Date column cannot  be identified')
             for n, record in enumerate(self.records):
                 self.records[n][dateSort] =  dateutil.parser.parse(record[dateSort].replace('_', ' '))
             self.records = sorted(self.records, key=lambda x: x[dateSort])
-        
+        else:
+            print('Date column cannot  be identified')
         # Add the timeDelta and convert datetime to string
         for n, record in enumerate(self.records):
             self.records[n][dateSort] =  (record[dateSort] + timedelta(hours=timeDelta)).strftime(dateFormat)
